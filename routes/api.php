@@ -114,3 +114,12 @@ Route::post('/reset-password', function (Request $request) {
 
     return response()->json(['message' => 'Password has been reset successfully.'], 200);
 });
+oute::middleware('auth:sanctum')->post('/appointments', [AppointmentController::class, 'store']);
+
+Route::get('/appointments/available', [AppointmentController::class, 'availableSlots']);
+
+Route::middleware('auth:sanctum')->get('/appointments/my', [AppointmentController::class, 'myAppointment']);
+
+Route::middleware('auth:sanctum')->get('/me', [AuthController::class, 'profile']);
+
+Route::middleware('auth:sanctum')->put('/me', [AuthController::class, 'updateProfile']);
