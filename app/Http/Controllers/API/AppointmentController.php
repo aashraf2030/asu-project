@@ -19,6 +19,7 @@ class AppointmentController extends Controller
             'appointment_time' => 'required|date_format:Y-m-d H:i:s|after:now',
         ]);
 
+        // التحقق إذا كان الميعاد محجوز بالفعل لنفس الدكتور
         $existing = Appointment::where('doctor_id', $request->doctor_id)
             ->where('appointment_time', $request->appointment_time)
             ->first();
@@ -29,22 +30,11 @@ class AppointmentController extends Controller
             ], 409);
         }
 
-        $existingForUser = Appointment::where('user_id', Auth::id())
-            ->where('status', 'booked')
-            ->where('appointment_time', '>=', now())
-            ->first();
-
-        if ($existingForUser) {
-            return response()->json([
-                'message' => 'You already have a booked appointment.'
-            ], 409);
-        }
-
+        // إنشاء الحجز
         $appointment = Appointment::create([
             'user_id' => Auth::id(),
             'doctor_id' => $request->doctor_id,
             'appointment_time' => $request->appointment_time,
-            'status' => 'booked',
         ]);
 
         return response()->json([
@@ -71,7 +61,7 @@ class AppointmentController extends Controller
             ->map(fn($dt) => Carbon::parse($dt)->format('H:i'));
 
         $slots = [];
-        $period = CarbonPeriod::create($start, '30 minutes', $end->subMinutes(30));
+        $period = CarbonPeriod::create($start, '30 minutes', $end->subMinutes(30)); // لتجنب وقت بعد 5
 
         foreach ($period as $slot) {
             if (!$existingAppointments->contains($slot->format('H:i'))) {
@@ -112,25 +102,4 @@ class AppointmentController extends Controller
             ]
         ]);
     }
-
-    public function destroy($id)
-{
-    $appointment = Appointment::where('id', $id)
-        ->where('user_id', Auth::id())
-        ->where('status', 'booked')
-        ->first();
-
-    if (!$appointment) {
-        return response()->json([
-            'message' => 'Appointment not found or already canceled.'
-        ], 404);
-    }
-
-    $appointment->delete();
-
-    return response()->json([
-        'message' => 'Appointment cancelled successfully.'
-    ], 200);
-}
-
 }
